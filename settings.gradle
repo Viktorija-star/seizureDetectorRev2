@@ -1,0 +1,2 @@
+rootProject.name='seizureDetectorRev2'
+include ':app'
