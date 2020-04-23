@@ -24,11 +24,13 @@ public class MainActivity extends AppCompatActivity {
 
     private LineGraphSeries<DataPoint> series;
     private LineGraphSeries<DataPoint> series2;
+    private LineGraphSeries<DataPoint> hrSeries;
     private int fs = 200;
     private int lastX = 0;                          //counter
     private int lastY = 0;                          //counter
-    private double[] time;
 
+    public String timeLine;
+    public String HrLine;
     private ECG ecg;
     private TextView peakCounter;
     private TextView mHRnumber;
@@ -36,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
     private int maxDataPoints = 4000;
     private double[] rawSignal = new double[maxDataPoints];
     public double[] y_axis = new double[maxDataPoints];            //Y axis points
+    private double[] HR = new double[maxDataPoints];
+    private double[] time = new double[maxDataPoints];
     public String line;                             //stores the value for the string
     public double[] qrsSignal;                      // array of QRS.
 
@@ -58,6 +62,24 @@ public class MainActivity extends AppCompatActivity {
         String[] numberStrs = line.split(",");
         double[] numbers = new double[numberStrs.length];
         int size = numberStrs.length;
+
+        // import time
+        doImportTime();
+        String[] timeString = timeLine.split(",");
+        for (int j=0; j<time.length; j++){
+            time[j] = Double.parseDouble(timeString[j]);
+        }
+
+        // import HR
+        doImportHR();
+        String[] hrString = HrLine.split(",");
+        for (int j=0; j<HR.length; j++){
+            HR[j] = Double.parseDouble(hrString[j]);
+        }
+
+
+
+
 
         if(size > maxDataPoints)                                    //load a maximum of 1000 numbers
         {
@@ -92,13 +114,42 @@ public class MainActivity extends AppCompatActivity {
         ecg.getQRS();
         ecg.detectQRS();
 //        int peakCounter = ecg.retunPeakCounter();
-        this.time = ecg.getTime();
+        //this.time = ecg.getTime();
         this.qrsSignal = ecg.getSignal();
 
 
         //******************************************************
         //              GRAPH STUFF
         //******************************************************
+        //create a graph for the HR
+        GraphView mHrGraph = (GraphView) findViewById(R.id.hrGraph);
+        hrSeries = new LineGraphSeries<DataPoint>();
+        hrSeries.setColor(Color.BLUE);
+        mHrGraph.addSeries(hrSeries);
+        mHrGraph.getGridLabelRenderer().setHorizontalAxisTitle("Time [s]");
+        mHrGraph.getGridLabelRenderer().setVerticalAxisTitle("HR [Bpm]");
+        //viewport for HR
+        Viewport hrVewport = mHrGraph.getViewport();
+        //viewport.setScrollable(true);
+        hrVewport.setYAxisBoundsManual(true);
+        hrVewport.setMinY(40);
+        hrVewport.setMaxY(180);
+
+        hrVewport.setXAxisBoundsManual(true);
+        hrVewport.setMinX(0);
+        hrVewport.setMaxX(5);
+//        viewport.setMaxX(400);
+//        viewport.setMaxX(1000);
+        hrVewport.setScrollable(true);
+
+
+
+
+
+
+
+
+
         //Create we get graph view instance
         GraphView graph = (GraphView) findViewById(R.id.graph1);
         //Data
@@ -139,7 +190,8 @@ public class MainActivity extends AppCompatActivity {
 
         viewport.setXAxisBoundsManual(true);
         viewport.setMinX(0);
-        viewport.setMaxX(400);
+        viewport.setMaxX(5);
+//        viewport.setMaxX(400);
 //        viewport.setMaxX(1000);
         viewport.setScrollable(true);
     }
@@ -168,7 +220,8 @@ public class MainActivity extends AppCompatActivity {
                     });
                     // sleep to slow down the add of entries
                     try {
-                        Thread.sleep(10);
+//                        Thread.sleep(10);
+                        Thread.sleep(5); // 5 ms are exactly 1/200 seconds.... real time....
 
                     } catch (InterruptedException e) {
                         // manage error ...
@@ -183,10 +236,18 @@ public class MainActivity extends AppCompatActivity {
 //        if(lastX < 1000)
 //        {
 //
+//        lastX += 1/fs;
         lastX++;
         lastY++;
-        series2.appendData(new DataPoint(lastX, rawSignal[lastY]), true, maxDataPoints);
-        series.appendData(new DataPoint(lastX, qrsSignal[lastY]), true, maxDataPoints);
+//        series2.appendData(new DataPoint(lastX, rawSignal[lastY]), true, maxDataPoints);
+//        series.appendData(new DataPoint(lastX, qrsSignal[lastY]), true, maxDataPoints);
+        series2.appendData(new DataPoint(time[lastX], rawSignal[lastY]), true, maxDataPoints);
+        series.appendData(new DataPoint(time[lastX], qrsSignal[lastY]), true, maxDataPoints);
+        // for the HR
+        hrSeries.appendData(new DataPoint(time[lastX], HR[lastY]), true, maxDataPoints);
+
+
+
         if (qrsSignal[lastY] > 0){ //if not -1 --> array bound exception
             this.countPeaks ++;
             peakCounter.setText(Integer.toString(this.countPeaks));
@@ -195,6 +256,10 @@ public class MainActivity extends AppCompatActivity {
 //            mHRnumber.setText(Double.toString(hr));
         }
 
+        // HR real time update number
+        double tmp = HR[lastY];
+        double tmp2 = Math.round(tmp);
+        mHRnumber.setText(Double.toString(tmp2));
         //TODO create the time vector
 
 
@@ -227,4 +292,36 @@ public class MainActivity extends AppCompatActivity {
         line = total.toString();
         return 1;
     }
+
+    //import time
+    private int doImportTime() {
+        InputStream isTime = getResources().openRawResource(R.raw.time_20sec);
+        BufferedReader r = new BufferedReader(new InputStreamReader(isTime));
+        StringBuilder total = new StringBuilder();
+        try {
+            while ((line = r.readLine()) != null)
+                total.append(line);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        timeLine = total.toString();
+        return 1;
+    }
+
+    //import time
+    private int doImportHR() {
+        InputStream is = getResources().openRawResource(R.raw.hr_sz01_20sec);
+        BufferedReader r = new BufferedReader(new InputStreamReader(is));
+        StringBuilder total = new StringBuilder();
+        try {
+            while ((line = r.readLine()) != null)
+                total.append(line);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        HrLine = total.toString();
+        return 1;
+    }
+
+
 }

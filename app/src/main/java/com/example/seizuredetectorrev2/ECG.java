@@ -30,11 +30,18 @@ public class ECG {
 
     public double[] getTime(){
         // make an array of time
-        double[] time = new double[this.window];
-        // here the time is time-1 because I apply the derivative so I do the for loop -2 times
-        for (int i=0 ;  i < time.length - 1 -1 ; i++ ){
-            time[i]= i/this.fs;
+        double[] time = new double[window];
+        for (int i=1 ;  i < time.length -3 ; i++ ){
+            int temp = i-1;
+            time[temp]= i/fs;
+            Log.d(TAG , "each interaction" + time[temp]);
         }
+        //-------- Debug
+        Log.d(TAG , "Fs is : " + fs +"\n" +"the time array is"  + time [0] +"...." + time [1] +"...." +Arrays.toString(time));
+        //-------------
+
+
+
         return time;
     }
 
